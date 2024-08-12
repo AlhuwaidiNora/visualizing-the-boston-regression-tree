@@ -1,0 +1,64 @@
+import pickle
+import matplotlib.pyplot as plt
+import pandas as pd
+from dtreeviz.trees import dtreeviz
+import graphviz
+from IPython.display import Image
+import pydotplus
+from sklearn import tree
+from sklearn.tree import DecisionTreeRegressor, plot_tree, export_text, export_graphviz
+import warnings
+import numpy as np
+
+warnings.filterwarnings('ignore')
+
+# Load the model and data
+regressor = pickle.load(open('data/reg_model.pkl', 'rb'))
+X_train = pd.read_csv('data/boston_X_train.csv')
+y_train = pd.read_csv('data/boston_y_train.csv')['0']
+
+# Load feature names
+with open('data/boston_features.txt', 'r') as f:
+    feat_str = f.read()
+features = feat_str.split(',')
+print(features)
+
+# Text representation of the tree
+tree_text = export_text(regressor, feature_names=features)
+print(tree_text)
+
+# Plot the tree using sklearn's plot_tree
+plt.figure(figsize=(20, 10))
+plot_tree(regressor, feature_names=features, filled=True, rounded=True, fontsize=12)
+plt.title('Decision Tree Visualization')
+plt.show()
+
+# Visualize the tree using graphviz
+dot_data = export_graphviz(regressor, out_file=None, 
+                           feature_names=features,  
+                           filled=True, rounded=True,  
+                           special_characters=True)  
+graph = graphviz.Source(dot_data)  
+graph.render('data/decision_tree')
+graph.view()
+
+# Visualize the tree using pydotplus
+graph = pydotplus.graph_from_dot_data(dot_data)  
+graph.write_png('data/decision_tree.png')
+Image(filename='data/decision_tree.png')
+
+# Visualize using dtreeviz
+viz = dtreeviz(regressor, X_train, y_train, feature_names=features, target_name='Price')
+viz.save("data/decision_tree_viz.html")
+viz.view()
+
+# Feature importance
+importances = regressor.feature_importances_
+indices = np.argsort(importances)[::-1]
+
+plt.figure(figsize=(12, 8))
+plt.title('Feature Importances')
+plt.bar(range(X_train.shape[1]), importances[indices], align='center')
+plt.xticks(range(X_train.shape[1]), [features[i] for i in indices], rotation=90)
+plt.xlim([-1, X_train.shape[1]])
+plt.show()
